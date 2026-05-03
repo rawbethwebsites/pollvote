@@ -161,7 +161,9 @@ export function getResults(poll: Poll) {
     }
   })
 
-  return { poll, questionResults, remainingSeconds }
+  const totalVotesAll = questionResults.reduce((sum, q) => sum + q.totalVotes, 0)
+
+  return { poll, questionResults, totalVotes: totalVotesAll, remainingSeconds }
 }
 
 // LocalStorage for host's polls

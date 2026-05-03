@@ -8,6 +8,7 @@ export default function CreatePoll() {
   const [title, setTitle] = useState('')
   const [options, setOptions] = useState(['', ''])
   const [isAnonymous, setIsAnonymous] = useState(false)
+  const [duration, setDuration] = useState<number | null>(5)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleAddOption = () => {
@@ -40,7 +41,8 @@ export default function CreatePoll() {
         body: JSON.stringify({
           title: title.trim(),
           options: options.filter(o => o.trim()),
-          isAnonymous
+          isAnonymous,
+          durationMinutes: duration
         })
       })
       const poll = await res.json()
@@ -110,6 +112,37 @@ export default function CreatePoll() {
                 + Add another option
               </button>
             )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text mb-2">Poll Duration</label>
+            <div className="flex gap-3">
+              {[1, 2, 5, 10, 15].map(mins => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => setDuration(mins)}
+                  className={`px-4 py-2 rounded-xl border-2 transition-all ${
+                    duration === mins
+                      ? 'border-primary bg-primary/5 text-primary font-medium'
+                      : 'border-border hover:border-primary/50 text-text-muted'
+                  }`}
+                >
+                  {mins} min
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setDuration(null)}
+                className={`px-4 py-2 rounded-xl border-2 transition-all ${
+                  duration === null
+                    ? 'border-primary bg-primary/5 text-primary font-medium'
+                    : 'border-border hover:border-primary/50 text-text-muted'
+                }`}
+              >
+                No limit
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">

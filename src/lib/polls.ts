@@ -6,6 +6,7 @@ export interface Poll {
   title: string
   options: string[]
   createdAt: string
+  endsAt: string | null
   isActive: boolean
   isAnonymous: boolean
   votes: Record<string, string[]>
@@ -38,14 +39,19 @@ export function generateId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
-export function createPoll(title: string, options: string[], isAnonymous: boolean): Poll {
+export function createPoll(title: string, options: string[], isAnonymous: boolean, durationMinutes: number | null): Poll {
   const polls = readPolls()
   const id = generateId()
+  const endsAt = durationMinutes
+    ? new Date(Date.now() + durationMinutes * 60 * 1000).toISOString()
+    : null
+
   const poll: Poll = {
     id,
     title,
     options,
     createdAt: new Date().toISOString(),
+    endsAt,
     isActive: true,
     isAnonymous,
     votes: Object.fromEntries(options.map(opt => [opt, []]))
@@ -57,15 +63,33 @@ export function createPoll(title: string, options: string[], isAnonymous: boolea
 
 export function getPoll(id: string): Poll | null {
   const polls = readPolls()
-  return polls[id] || null
+  const poll = polls[id]
+
+  // Auto-close if timer expired
+  if (poll && poll.endsAt && new Date(poll.endsAt) <= new Date()) {
+    poll.isActive = false
+    writePolls(polls)
+  }
+
+  return poll
 }
 
 export function vote(pollId: string, option: string, voterName: string): boolean {
   const polls = readPolls()
   const poll = polls[pollId]
+
   if (!poll || !poll.isActive) return false
+
+  // Check if timer expired
+  if (poll.endsAt && new Date(poll.endsAt) <= new Date()) {
+    poll.isActive = false
+    writePolls(polls)
+    return false
+  }
+
   if (!poll.options.includes(option)) return false
   if (poll.votes[option].includes(voterName)) return false
+
   poll.votes[option].push(voterName)
   writePolls(polls)
   return true
@@ -74,13 +98,21 @@ export function vote(pollId: string, option: string, voterName: string): boolean
 export function getResults(id: string) {
   const poll = getPoll(id)
   if (!poll) return null
+
   const totalVotes = Object.values(poll.votes).flat().length
   const results = poll.options.map(opt => ({
     option: opt,
     count: poll.votes[opt].length,
     percentage: totalVotes === 0 ? 0 : Math.round((poll.votes[opt].length / totalVotes) * 100)
   }))
-  return { poll, results, totalVotes }
+
+  // Calculate remaining time
+  let remainingSeconds = null
+  if (poll.endsAt && poll.isActive) {
+    remainingSeconds = Math.max(0, Math.floor((new Date(poll.endsAt).getTime() - Date.now()) / 1000))
+  }
+
+  return { poll, results, totalVotes, remainingSeconds }
 }
 
 export function closePoll(id: string): boolean {

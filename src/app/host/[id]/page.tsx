@@ -15,6 +15,7 @@ interface Poll {
   options: string[]
   isActive: boolean
   isAnonymous: boolean
+  endsAt: string | null
   votes: Record<string, string[]>
 }
 
@@ -23,6 +24,7 @@ export default function HostPage({ params }: { params: { id: string } }) {
   const [poll, setPoll] = useState<Poll | null>(null)
   const [results, setResults] = useState<Result[]>([])
   const [totalVotes, setTotalVotes] = useState(0)
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null)
   const [copied, setCopied] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
@@ -37,6 +39,7 @@ export default function HostPage({ params }: { params: { id: string } }) {
           setPoll(data.poll)
           setResults(data.results)
           setTotalVotes(data.totalVotes)
+          setRemainingSeconds(data.remainingSeconds)
           setIsLoading(false)
         })
         .catch(() => {
@@ -45,7 +48,7 @@ export default function HostPage({ params }: { params: { id: string } }) {
     }
 
     fetchResults()
-    const interval = setInterval(fetchResults, 5000)
+    const interval = setInterval(fetchResults, 1000)
     return () => clearInterval(interval)
   }, [params.id])
 
@@ -58,6 +61,12 @@ export default function HostPage({ params }: { params: { id: string } }) {
     navigator.clipboard.writeText(text)
     setCopied(type)
     setTimeout(() => setCopied(''), 2000)
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   const shareLink = `http://localhost:3000/vote/${params.id}?name=YOUR_NAME`
@@ -111,6 +120,12 @@ export default function HostPage({ params }: { params: { id: string } }) {
               )}
               <h1 className="text-2xl font-bold text-text">{poll.title}</h1>
             </div>
+
+            {remainingSeconds !== null && remainingSeconds > 0 && poll.isActive && (
+              <div className="text-2xl font-mono font-bold text-primary bg-primary/10 px-4 py-2 rounded-xl">
+                {formatTime(remainingSeconds)}
+              </div>
+            )}
           </div>
 
           <div className="bg-bg rounded-xl p-6 text-center mb-6">

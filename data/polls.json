@@ -51,5 +51,22 @@
         "Rob"
       ]
     }
+  },
+  "NLXPL1": {
+    "id": "NLXPL1",
+    "title": "how are you feeling?",
+    "options": [
+      "Good",
+      "Bad"
+    ],
+    "createdAt": "2026-05-03T18:36:23.739Z",
+    "isActive": true,
+    "isAnonymous": true,
+    "votes": {
+      "Good": [
+        "YOUR_NAME"
+      ],
+      "Bad": []
+    }
   }
 }

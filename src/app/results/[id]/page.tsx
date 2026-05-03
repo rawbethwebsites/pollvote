@@ -15,6 +15,7 @@ interface Poll {
   options: string[]
   isActive: boolean
   isAnonymous: boolean
+  endsAt: string | null
 }
 
 export default function ResultsPage({ params }: { params: { id: string } }) {
@@ -22,6 +23,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
   const [poll, setPoll] = useState<Poll | null>(null)
   const [results, setResults] = useState<Result[]>([])
   const [totalVotes, setTotalVotes] = useState(0)
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -35,6 +37,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           setPoll(data.poll)
           setResults(data.results)
           setTotalVotes(data.totalVotes)
+          setRemainingSeconds(data.remainingSeconds)
           setIsLoading(false)
         })
         .catch(() => {
@@ -43,13 +46,14 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     }
 
     fetchResults()
-    const interval = setInterval(fetchResults, 5000)
+    const interval = setInterval(fetchResults, 1000)
     return () => clearInterval(interval)
   }, [params.id])
 
-  const handleClosePoll = async () => {
-    await fetch(`/api/polls/${params.id}/close`, { method: 'POST' })
-    window.location.reload()
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   if (isLoading) {
@@ -86,7 +90,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         </button>
 
         <div className="bg-surface rounded-2xl shadow-lg p-8">
-          <div className="flex items-start justify-between mb-8">
+          <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 {poll.isActive ? (
@@ -101,14 +105,12 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
               </div>
               <h1 className="text-2xl font-bold text-text">{poll.title}</h1>
             </div>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href)
-              }}
-              className="px-4 py-2 text-sm text-text-muted hover:text-text border border-border rounded-lg"
-            >
-              Share
-            </button>
+
+            {remainingSeconds !== null && remainingSeconds > 0 && poll.isActive && (
+              <div className="text-2xl font-mono font-bold text-primary bg-primary/10 px-4 py-2 rounded-xl">
+                {formatTime(remainingSeconds)}
+              </div>
+            )}
           </div>
 
           <div className="mb-6 text-center">
@@ -116,7 +118,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             <div className="text-text-muted">{totalVotes === 1 ? 'vote' : 'votes'}</div>
           </div>
 
-          <div className="space-y-4 mb-8">
+          <div className="space-y-4 mb-6">
             {results.map((result) => (
               <div key={result.option} className="relative">
                 <div className="flex justify-between mb-1">
@@ -135,18 +137,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             ))}
           </div>
 
-          {poll.isActive && (
-            <button
-              onClick={handleClosePoll}
-              className="w-full py-3 px-6 border border-error text-error hover:bg-error/5 font-medium rounded-xl transition-colors"
-            >
-              Close Poll
-            </button>
-          )}
-        </div>
-
-        <div className="mt-6 text-center text-sm text-text-muted">
-          Poll ID: <span className="font-mono">{params.id}</span>
+          <div className="mt-6 text-center text-sm text-text-muted">
+            Poll ID: <span className="font-mono">{params.id}</span>
+          </div>
         </div>
       </div>
     </div>

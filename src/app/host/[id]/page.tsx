@@ -3,27 +3,32 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-interface Result {
-  option: string
-  count: number
-  percentage: number
+interface Question {
+  id: string
+  text: string
+  options: string[]
+}
+
+interface QuestionResult {
+  questionId: string
+  questionText: string
+  results: { option: string; count: number; percentage: number }[]
+  totalVotes: number
 }
 
 interface Poll {
   id: string
   title: string
-  options: string[]
+  questions: Question[]
   isActive: boolean
   isAnonymous: boolean
   endsAt: string | null
-  votes: Record<string, string[]>
 }
 
 export default function HostPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [poll, setPoll] = useState<Poll | null>(null)
-  const [results, setResults] = useState<Result[]>([])
-  const [totalVotes, setTotalVotes] = useState(0)
+  const [questionResults, setQuestionResults] = useState<QuestionResult[]>([])
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null)
   const [copied, setCopied] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -37,8 +42,7 @@ export default function HostPage({ params }: { params: { id: string } }) {
         })
         .then(data => {
           setPoll(data.poll)
-          setResults(data.results)
-          setTotalVotes(data.totalVotes)
+          setQuestionResults(data.questionResults)
           setRemainingSeconds(data.remainingSeconds)
           setIsLoading(false)
         })
@@ -93,8 +97,6 @@ export default function HostPage({ params }: { params: { id: string } }) {
     )
   }
 
-  const maxCount = Math.max(...results.map(r => r.count), 1)
-
   return (
     <div className="min-h-screen bg-bg py-12 px-4">
       <div className="max-w-2xl mx-auto">
@@ -105,7 +107,7 @@ export default function HostPage({ params }: { params: { id: string } }) {
           <span>←</span> Back to Home
         </button>
 
-        {/* Poll ID Card */}
+        {/* Poll Header */}
         <div className="bg-surface rounded-2xl shadow-lg p-8 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -152,67 +154,72 @@ export default function HostPage({ params }: { params: { id: string } }) {
                 </button>
               </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-text mb-2">View results</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={resultsLink}
-                  readOnly
-                  className="flex-1 px-4 py-3 border border-border rounded-xl bg-bg text-sm font-mono"
-                />
-                <button
-                  onClick={() => copyToClipboard(resultsLink, 'results')}
-                  className="px-6 py-3 border border-border hover:bg-bg text-text font-medium rounded-xl transition-colors"
-                >
-                  {copied === 'results' ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Results Card */}
-        <div className="bg-surface rounded-2xl shadow-lg p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-text">Live Results</h2>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary">{totalVotes}</div>
-              <div className="text-sm text-text-muted">{totalVotes === 1 ? 'vote' : 'votes'}</div>
-            </div>
-          </div>
+        {/* Results per Question */}
+        <div className="space-y-6">
+          {questionResults.map((qr, qIndex) => {
+            const maxCount = Math.max(...qr.results.map(r => r.count), 1)
+            const totalVotesAll = questionResults.reduce((sum, q) => sum + q.totalVotes, 0)
 
-          <div className="space-y-4 mb-6">
-            {results.map((result) => (
-              <div key={result.option} className="relative">
-                <div className="flex justify-between mb-1">
-                  <span className="text-text font-medium">{result.option}</span>
-                  <span className="text-text-muted text-sm">
-                    {result.count} {result.count === 1 ? 'vote' : 'votes'} ({result.percentage}%)
-                  </span>
+            return (
+              <div key={qr.questionId} className="bg-surface rounded-2xl shadow-lg p-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-text">
+                    Q{qIndex + 1}: {qr.questionText}
+                  </h2>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{qr.totalVotes}</div>
+                    <div className="text-xs text-text-muted">{qr.totalVotes === 1 ? 'vote' : 'votes'}</div>
+                  </div>
                 </div>
-                <div className="h-8 bg-bg rounded-lg overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-lg transition-all duration-500 ease-out"
-                    style={{ width: `${(result.count / maxCount) * 100}%` }}
-                  ></div>
+
+                <div className="space-y-3">
+                  {qr.results.map((result) => (
+                    <div key={result.option}>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-text">{result.option}</span>
+                        <span className="text-text-muted text-sm">
+                          {result.count} ({result.percentage}%)
+                        </span>
+                      </div>
+                      <div className="h-6 bg-bg rounded-lg overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-lg transition-all duration-500 ease-out"
+                          style={{ width: `${(result.count / maxCount) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            )
+          })}
+        </div>
+
+        {/* Total and Close */}
+        <div className="mt-6 bg-surface rounded-2xl shadow-lg p-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-text-muted text-sm">Total votes across all questions</p>
+              <p className="text-3xl font-bold text-primary">
+                {questionResults.reduce((sum, q) => sum + q.totalVotes, 0)}
+              </p>
+            </div>
+
+            {poll.isActive && (
+              <button
+                onClick={handleClosePoll}
+                className="px-6 py-3 border border-error text-error hover:bg-error/5 font-medium rounded-xl transition-colors"
+              >
+                Close Poll
+              </button>
+            )}
           </div>
 
-          {poll.isActive && (
-            <button
-              onClick={handleClosePoll}
-              className="w-full py-3 px-6 border border-error text-error hover:bg-error/5 font-medium rounded-xl transition-colors"
-            >
-              Close Poll
-            </button>
-          )}
-
           {!poll.isActive && (
-            <p className="text-center text-text-muted">This poll is closed</p>
+            <p className="text-center text-text-muted mt-4">This poll is closed</p>
           )}
         </div>
       </div>

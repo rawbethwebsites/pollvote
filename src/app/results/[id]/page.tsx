@@ -3,16 +3,16 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-interface Result {
-  option: string
-  count: number
-  percentage: number
+interface QuestionResult {
+  questionId: string
+  questionText: string
+  results: { option: string; count: number; percentage: number }[]
+  totalVotes: number
 }
 
 interface Poll {
   id: string
   title: string
-  options: string[]
   isActive: boolean
   isAnonymous: boolean
   endsAt: string | null
@@ -21,8 +21,7 @@ interface Poll {
 export default function ResultsPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [poll, setPoll] = useState<Poll | null>(null)
-  const [results, setResults] = useState<Result[]>([])
-  const [totalVotes, setTotalVotes] = useState(0)
+  const [questionResults, setQuestionResults] = useState<QuestionResult[]>([])
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -35,8 +34,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         })
         .then(data => {
           setPoll(data.poll)
-          setResults(data.results)
-          setTotalVotes(data.totalVotes)
+          setQuestionResults(data.questionResults)
           setRemainingSeconds(data.remainingSeconds)
           setIsLoading(false)
         })
@@ -77,20 +75,16 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     )
   }
 
-  const maxCount = Math.max(...results.map(r => r.count), 1)
-
   return (
     <div className="min-h-screen bg-bg py-12 px-4">
       <div className="max-w-xl mx-auto">
-        <button
-          onClick={() => router.push('/')}
-          className="mb-8 text-text-muted hover:text-text flex items-center gap-2"
-        >
-          <span>←</span> Back
+        <button onClick={() => router.push('/')} className="mb-8 text-text-muted hover:text-text">
+          ← Back
         </button>
 
-        <div className="bg-surface rounded-2xl shadow-lg p-8">
-          <div className="flex items-start justify-between mb-6">
+        {/* Header */}
+        <div className="bg-surface rounded-2xl shadow-lg p-8 mb-6">
+          <div className="flex items-start justify-between mb-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 {poll.isActive ? (
@@ -113,33 +107,56 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             )}
           </div>
 
-          <div className="mb-6 text-center">
-            <div className="text-4xl font-bold text-primary">{totalVotes}</div>
-            <div className="text-text-muted">{totalVotes === 1 ? 'vote' : 'votes'}</div>
+          <div className="text-center py-4">
+            <div className="text-4xl font-bold text-primary">
+              {questionResults.reduce((sum, q) => sum + q.totalVotes, 0)}
+            </div>
+            <div className="text-text-muted">total votes</div>
           </div>
+        </div>
 
-          <div className="space-y-4 mb-6">
-            {results.map((result) => (
-              <div key={result.option} className="relative">
-                <div className="flex justify-between mb-1">
-                  <span className="text-text font-medium">{result.option}</span>
-                  <span className="text-text-muted text-sm">
-                    {result.count} ({result.percentage}%)
-                  </span>
+        {/* Results per Question */}
+        <div className="space-y-6">
+          {questionResults.map((qr, qIndex) => {
+            const maxCount = Math.max(...qr.results.map(r => r.count), 1)
+
+            return (
+              <div key={qr.questionId} className="bg-surface rounded-2xl shadow-lg p-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-text">
+                    Q{qIndex + 1}: {qr.questionText}
+                  </h2>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{qr.totalVotes}</div>
+                    <div className="text-xs text-text-muted">{qr.totalVotes === 1 ? 'vote' : 'votes'}</div>
+                  </div>
                 </div>
-                <div className="h-8 bg-bg rounded-lg overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-lg transition-all duration-500 ease-out"
-                    style={{ width: `${(result.count / maxCount) * 100}%` }}
-                  ></div>
+
+                <div className="space-y-3">
+                  {qr.results.map((result) => (
+                    <div key={result.option}>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-text">{result.option}</span>
+                        <span className="text-text-muted text-sm">
+                          {result.count} ({result.percentage}%)
+                        </span>
+                      </div>
+                      <div className="h-6 bg-bg rounded-lg overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-lg transition-all duration-500 ease-out"
+                          style={{ width: `${(result.count / maxCount) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+            )
+          })}
+        </div>
 
-          <div className="mt-6 text-center text-sm text-text-muted">
-            Poll ID: <span className="font-mono">{params.id}</span>
-          </div>
+        <div className="mt-6 text-center text-sm text-text-muted">
+          Poll ID: <span className="font-mono">{params.id}</span>
         </div>
       </div>
     </div>

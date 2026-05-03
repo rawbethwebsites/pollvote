@@ -18,13 +18,15 @@ export async function POST(
 ) {
   try {
     const body = await request.json()
-    const { option, voterName } = body
-    if (!option || !voterName) {
-      return NextResponse.json({ error: 'Option and voterName required' }, { status: 400 })
+    const { questionId, option, voterName } = body
+
+    if (!questionId || !option || !voterName) {
+      return NextResponse.json({ error: 'questionId, option, and voterName required' }, { status: 400 })
     }
-    const success = vote(params.id, option, voterName)
+
+    const success = vote(params.id, questionId, option, voterName)
     if (!success) {
-      return NextResponse.json({ error: 'Vote failed - poll inactive or already voted' }, { status: 400 })
+      return NextResponse.json({ error: 'Vote failed - poll inactive, expired, or already voted' }, { status: 400 })
     }
     return NextResponse.json({ success: true })
   } catch {

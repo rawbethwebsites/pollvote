@@ -3,12 +3,19 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
+interface Question {
+  id: string
+  text: string
+  options: string[]
+}
+
 interface Poll {
   id: string
   title: string
-  options: string[]
+  questions: Question[]
   isActive: boolean
   isAnonymous: boolean
+  endsAt: string | null
 }
 
 export default function VotePage({ params }: { params: { id: string } }) {
@@ -17,11 +24,13 @@ export default function VotePage({ params }: { params: { id: string } }) {
   const voterName = searchParams.get('name') || ''
 
   const [poll, setPoll] = useState<Poll | null>(null)
+  const [currentQIndex, setCurrentQIndex] = useState(0)
   const [selectedOption, setSelectedOption] = useState('')
-  const [hasVoted, setHasVoted] = useState(false)
+  const [votedQuestions, setVotedQuestions] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [showAllResults, setShowAllResults] = useState(false)
 
   useEffect(() => {
     fetch(`/api/polls/${params.id}`)
@@ -40,18 +49,33 @@ export default function VotePage({ params }: { params: { id: string } }) {
   }, [params.id])
 
   const handleVote = async () => {
-    if (!selectedOption || !voterName) return
+    if (!selectedOption || !voterName || !poll) return
 
+    const question = poll.questions[currentQIndex]
     setIsSubmitting(true)
+
     try {
       const res = await fetch(`/api/polls/${params.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ option: selectedOption, voterName })
+        body: JSON.stringify({
+          questionId: question.id,
+          option: selectedOption,
+          voterName
+        })
       })
 
       if (res.ok) {
-        setHasVoted(true)
+        const newVoted = new Set(votedQuestions)
+        newVoted.add(question.id)
+        setVotedQuestions(newVoted)
+
+        if (currentQIndex < poll.questions.length - 1) {
+          setCurrentQIndex(currentQIndex + 1)
+          setSelectedOption('')
+        } else {
+          setShowAllResults(true)
+        }
       } else {
         const data = await res.json()
         setError(data.error || 'Failed to submit vote')
@@ -61,6 +85,9 @@ export default function VotePage({ params }: { params: { id: string } }) {
     }
     setIsSubmitting(false)
   }
+
+  const currentQuestion = poll?.questions[currentQIndex]
+  const allVoted = poll ? votedQuestions.size === poll.questions.length : false
 
   if (isLoading) {
     return (
@@ -85,39 +112,88 @@ export default function VotePage({ params }: { params: { id: string } }) {
 
   if (!poll) return null
 
+  if (!voterName) {
+    return (
+      <div className="min-h-screen bg-bg py-12 px-4">
+        <div className="max-w-xl mx-auto">
+          <button onClick={() => router.push('/')} className="mb-8 text-text-muted hover:text-text">
+            ← Back
+          </button>
+          <div className="bg-surface rounded-2xl shadow-lg p-8 text-center">
+            <p className="text-text-muted mb-4">Enter your name in the URL to vote</p>
+            <p className="text-sm font-mono bg-bg px-4 py-2 rounded">
+              {window.location.origin}/vote/{params.id}?name=YourName
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (showAllResults || allVoted) {
+    return (
+      <div className="min-h-screen bg-bg py-12 px-4">
+        <div className="max-w-xl mx-auto">
+          <button onClick={() => router.push('/')} className="mb-8 text-text-muted hover:text-text">
+            ← Back
+          </button>
+          <div className="bg-surface rounded-2xl shadow-lg p-8 text-center">
+            <div className="text-6xl mb-4">✓</div>
+            <h2 className="text-2xl font-bold text-text mb-2">Vote Submitted!</h2>
+            <p className="text-text-muted mb-6">You answered {poll.questions.length} questions</p>
+            <button
+              onClick={() => router.push(`/results/${params.id}`)}
+              className="px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors"
+            >
+              View Results
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!poll.isActive) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <h2 className="text-2xl font-bold text-text mb-2">Voting Closed</h2>
+          <p className="text-text-muted mb-6">This poll is no longer accepting votes</p>
+          <button
+            onClick={() => router.push(`/results/${params.id}`)}
+            className="px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors"
+          >
+            View Results
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-bg py-12 px-4">
       <div className="max-w-xl mx-auto">
         <div className="bg-surface rounded-2xl shadow-lg p-8">
-          {hasVoted ? (
-            <div className="text-center py-8">
-              <div className="text-6xl mb-4">✓</div>
-              <h2 className="text-2xl font-bold text-text mb-2">Vote Submitted!</h2>
-              <p className="text-text-muted mb-6">Your vote has been recorded</p>
-              <button
-                onClick={() => router.push(`/results/${params.id}`)}
-                className="px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors"
-              >
-                View Results
-              </button>
+          {/* Progress */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="px-3 py-1 bg-success/10 text-success text-sm font-medium rounded-full">
+              Live
             </div>
-          ) : poll.isActive ? (
+            <span className="text-sm text-text-muted">
+              Question {currentQIndex + 1} of {poll.questions.length}
+            </span>
+          </div>
+
+          <h1 className="text-2xl font-bold text-text mb-2">{poll.title}</h1>
+          <p className="text-text-muted mb-6">Voting as <span className="font-medium">{voterName}</span></p>
+
+          {currentQuestion && (
             <>
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="px-3 py-1 bg-success/10 text-success text-sm font-medium rounded-full">
-                    Live
-                  </div>
-                  <span className="text-sm text-text-muted">Voting is open</span>
-                </div>
-                <h1 className="text-2xl font-bold text-text mb-2">{poll.title}</h1>
-                {voterName && (
-                  <p className="text-text-muted">Voting as <span className="font-medium">{voterName}</span></p>
-                )}
-              </div>
+              <h2 className="text-xl font-semibold text-text mb-6">{currentQuestion.text}</h2>
 
               <div className="space-y-3 mb-8">
-                {poll.options.map((option) => (
+                {currentQuestion.options.map((option) => (
                   <button
                     key={option}
                     onClick={() => setSelectedOption(option)}
@@ -132,35 +208,25 @@ export default function VotePage({ params }: { params: { id: string } }) {
                 ))}
               </div>
 
-              {voterName ? (
-                <button
-                  onClick={handleVote}
-                  disabled={!selectedOption || isSubmitting}
-                  className="w-full py-4 px-6 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Vote'}
-                </button>
-              ) : (
-                <p className="text-center text-text-muted py-4">
-                  Go back and enter your name to vote
-                </p>
-              )}
-
-              {error && <p className="mt-4 text-center text-error">{error}</p>}
-            </>
-          ) : (
-            <div className="text-center py-8">
-              <div className="text-6xl mb-4">🔒</div>
-              <h2 className="text-2xl font-bold text-text mb-2">Voting Closed</h2>
-              <p className="text-text-muted mb-6">This poll is no longer accepting votes</p>
               <button
-                onClick={() => router.push(`/results/${params.id}`)}
-                className="px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors"
+                onClick={handleVote}
+                disabled={!selectedOption || isSubmitting}
+                className="w-full py-4 px-6 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
               >
-                View Results
+                {isSubmitting
+                  ? 'Submitting...'
+                  : currentQIndex < poll.questions.length - 1
+                  ? 'Next Question'
+                  : 'Finish Voting'}
               </button>
-            </div>
+
+              {votedQuestions.has(currentQuestion.id) && (
+                <p className="text-center text-success mt-4">Answer recorded!</p>
+              )}
+            </>
           )}
+
+          {error && <p className="mt-4 text-center text-error">{error}</p>}
         </div>
       </div>
     </div>

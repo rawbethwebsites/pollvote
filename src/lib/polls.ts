@@ -1,15 +1,22 @@
 import fs from 'fs'
 import path from 'path'
 
+export interface Question {
+  id: string
+  text: string
+  options: string[]
+}
+
 export interface Poll {
   id: string
   title: string
-  options: string[]
+  questions: Question[]
   createdAt: string
   endsAt: string | null
   isActive: boolean
   isAnonymous: boolean
-  votes: Record<string, string[]>
+  currentQuestionIndex: number
+  votes: Record<string, Record<string, string[]>> // questionId -> option -> voter names
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data')
@@ -35,26 +42,49 @@ function writePolls(polls: Record<string, Poll>) {
   fs.writeFileSync(POLLS_FILE, JSON.stringify(polls, null, 2))
 }
 
-export function generateId(): string {
+function generateId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
-export function createPoll(title: string, options: string[], isAnonymous: boolean, durationMinutes: number | null): Poll {
+function generateQuestionId(): string {
+  return Math.random().toString(36).substring(2, 6)
+}
+
+export interface CreatePollInput {
+  title: string
+  questions: { text: string; options: string[] }[]
+  isAnonymous: boolean
+  durationMinutes: number | null
+}
+
+export function createPoll(input: CreatePollInput): Poll {
   const polls = readPolls()
   const id = generateId()
-  const endsAt = durationMinutes
-    ? new Date(Date.now() + durationMinutes * 60 * 1000).toISOString()
+  const endsAt = input.durationMinutes
+    ? new Date(Date.now() + input.durationMinutes * 60 * 1000).toISOString()
     : null
+
+  const questions: Question[] = input.questions.map(q => ({
+    id: generateQuestionId(),
+    text: q.text,
+    options: q.options
+  }))
+
+  const votes: Record<string, Record<string, string[]>> = {}
+  for (const q of questions) {
+    votes[q.id] = Object.fromEntries(q.options.map(opt => [opt, []]))
+  }
 
   const poll: Poll = {
     id,
-    title,
-    options,
+    title: input.title,
+    questions,
     createdAt: new Date().toISOString(),
     endsAt,
     isActive: true,
-    isAnonymous,
-    votes: Object.fromEntries(options.map(opt => [opt, []]))
+    isAnonymous: input.isAnonymous,
+    currentQuestionIndex: 0,
+    votes
   }
   polls[id] = poll
   writePolls(polls)
@@ -65,7 +95,6 @@ export function getPoll(id: string): Poll | null {
   const polls = readPolls()
   const poll = polls[id]
 
-  // Auto-close if timer expired
   if (poll && poll.endsAt && new Date(poll.endsAt) <= new Date()) {
     poll.isActive = false
     writePolls(polls)
@@ -74,23 +103,23 @@ export function getPoll(id: string): Poll | null {
   return poll
 }
 
-export function vote(pollId: string, option: string, voterName: string): boolean {
+export function vote(pollId: string, questionId: string, option: string, voterName: string): boolean {
   const polls = readPolls()
   const poll = polls[pollId]
 
   if (!poll || !poll.isActive) return false
 
-  // Check if timer expired
   if (poll.endsAt && new Date(poll.endsAt) <= new Date()) {
     poll.isActive = false
     writePolls(polls)
     return false
   }
 
-  if (!poll.options.includes(option)) return false
-  if (poll.votes[option].includes(voterName)) return false
+  if (!poll.votes[questionId]) return false
+  if (!poll.votes[questionId][option]) return false
+  if (poll.votes[questionId][option].includes(voterName)) return false
 
-  poll.votes[option].push(voterName)
+  poll.votes[questionId][option].push(voterName)
   writePolls(polls)
   return true
 }
@@ -99,20 +128,34 @@ export function getResults(id: string) {
   const poll = getPoll(id)
   if (!poll) return null
 
-  const totalVotes = Object.values(poll.votes).flat().length
-  const results = poll.options.map(opt => ({
-    option: opt,
-    count: poll.votes[opt].length,
-    percentage: totalVotes === 0 ? 0 : Math.round((poll.votes[opt].length / totalVotes) * 100)
-  }))
+  const totalVotesPerQuestion: Record<string, number> = {}
+  const questionResults = poll.questions.map(q => {
+    const totalVotes = Object.values(poll.votes[q.id]).flat().length
+    totalVotesPerQuestion[q.id] = totalVotes
+    return {
+      questionId: q.id,
+      questionText: q.text,
+      results: q.options.map(opt => ({
+        option: opt,
+        count: poll.votes[q.id][opt].length,
+        percentage: totalVotes === 0 ? 0 : Math.round((poll.votes[q.id][opt].length / totalVotes) * 100)
+      })),
+      totalVotes
+    }
+  })
 
-  // Calculate remaining time
   let remainingSeconds = null
   if (poll.endsAt && poll.isActive) {
     remainingSeconds = Math.max(0, Math.floor((new Date(poll.endsAt).getTime() - Date.now()) / 1000))
   }
 
-  return { poll, results, totalVotes, remainingSeconds }
+  return {
+    poll,
+    questionResults,
+    totalVotesPerQuestion,
+    remainingSeconds,
+    currentQuestionIndex: poll.currentQuestionIndex
+  }
 }
 
 export function closePoll(id: string): boolean {

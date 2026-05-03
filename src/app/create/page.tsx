@@ -2,16 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-
-interface QuestionInput {
-  text: string
-  options: string[]
-}
+import { createPoll, saveHostPoll, buildHostUrl } from '@/lib/polls'
 
 export default function CreatePoll() {
   const router = useRouter()
   const [title, setTitle] = useState('')
-  const [questions, setQuestions] = useState<QuestionInput[]>([
+  const [questions, setQuestions] = useState<{ text: string; options: string[] }[]>([
     { text: '', options: ['', ''] }
   ])
   const [isAnonymous, setIsAnonymous] = useState(false)
@@ -56,8 +52,7 @@ export default function CreatePoll() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     if (!title.trim()) return
 
     const validQuestions = questions.filter(q =>
@@ -67,26 +62,23 @@ export default function CreatePoll() {
     if (validQuestions.length === 0) return
 
     setIsLoading(true)
-    try {
-      const res = await fetch('/api/polls', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title.trim(),
-          questions: validQuestions.map(q => ({
-            text: q.text.trim(),
-            options: q.options.filter(o => o.trim())
-          })),
-          isAnonymous,
-          durationMinutes: duration
-        })
-      })
-      const poll = await res.json()
-      router.push(`/host/${poll.id}`)
-    } catch (error) {
-      console.error('Failed to create poll:', error)
-      setIsLoading(false)
-    }
+
+    const poll = createPoll(
+      title.trim(),
+      validQuestions.map(q => ({
+        text: q.text.trim(),
+        options: q.options.filter(o => o.trim())
+      })),
+      isAnonymous,
+      duration
+    )
+
+    // Save to localStorage
+    saveHostPoll(poll)
+
+    // Navigate to host dashboard
+    const encoded = btoa(JSON.stringify(poll))
+    router.push(`/host?p=${encoded}`)
   }
 
   return (
@@ -101,7 +93,7 @@ export default function CreatePoll() {
 
         <h1 className="text-3xl font-bold text-text mb-8">Create a Poll</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           {/* Title */}
           <div className="bg-surface rounded-2xl shadow-lg p-8">
             <label className="block text-sm font-medium text-text mb-2">Poll Title</label>
@@ -111,7 +103,6 @@ export default function CreatePoll() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What is this poll about?"
               className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-              required
             />
           </div>
 
@@ -232,13 +223,13 @@ export default function CreatePoll() {
           </div>
 
           <button
-            type="submit"
-            disabled={isLoading}
+            onClick={handleSubmit}
+            disabled={isLoading || !title.trim()}
             className="w-full py-4 px-6 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
           >
             {isLoading ? 'Creating...' : 'Create Poll'}
           </button>
-        </form>
+        </div>
       </div>
     </div>
   )

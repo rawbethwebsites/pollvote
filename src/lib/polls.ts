@@ -1,6 +1,4 @@
-import fs from 'fs'
-import path from 'path'
-
+// Poll types
 export interface Question {
   id: string
   text: string
@@ -15,186 +13,187 @@ export interface Poll {
   endsAt: string | null
   isActive: boolean
   isAnonymous: boolean
-  currentQuestionIndex: number
-  votes: Record<string, Record<string, string[]>>
+  votes: Record<string, Record<string, string[]>> // questionId -> option -> voter names
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data')
-const POLLS_FILE = path.join(DATA_DIR, 'polls.json')
-
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true })
-  }
+export interface PollLink {
+  poll: Poll
+  type: 'host' | 'vote' | 'results'
 }
 
-function readPolls(): Record<string, Poll> {
-  ensureDataDir()
-  if (!fs.existsSync(POLLS_FILE)) {
-    return {}
-  }
-  const data = fs.readFileSync(POLLS_FILE, 'utf-8')
-  return JSON.parse(data)
-}
-
-function writePolls(polls: Record<string, Poll>) {
-  ensureDataDir()
-  fs.writeFileSync(POLLS_FILE, JSON.stringify(polls, null, 2))
-}
-
-function generateId(): string {
+// Generate IDs
+export function generateId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
-function generateQuestionId(): string {
+export function generateQuestionId(): string {
   return Math.random().toString(36).substring(2, 6)
 }
 
-export interface CreatePollInput {
-  title: string
-  questions: { text: string; options: string[] }[]
-  isAnonymous: boolean
-  durationMinutes: number | null
+// Encode/decode poll to URL-safe base64
+export function encodePoll(poll: Poll): string {
+  const json = JSON.stringify(poll)
+  // Use base64url encoding (URL-safe)
+  return btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16))))
 }
 
-export function createPoll(input: CreatePollInput): Poll {
-  const polls = readPolls()
+export function decodePoll(encoded: string): Poll | null {
+  try {
+    const json = decodeURIComponent(atob(encoded))
+    return JSON.parse(json)
+  } catch {
+    return null
+  }
+}
+
+// Build URLs
+export function buildVoteUrl(baseUrl: string, poll: Poll): string {
+  return `${baseUrl}/vote?p=${encodePoll(poll)}`
+}
+
+export function buildResultsUrl(baseUrl: string, poll: Poll): string {
+  return `${baseUrl}/results?p=${encodePoll(poll)}`
+}
+
+export function buildHostUrl(baseUrl: string, poll: Poll): string {
+  return `${baseUrl}/host?p=${encodePoll(poll)}`
+}
+
+// Create a new poll
+export function createPoll(
+  title: string,
+  questions: { text: string; options: string[] }[],
+  isAnonymous: boolean,
+  durationMinutes: number | null
+): Poll {
   const id = generateId()
-  const endsAt = input.durationMinutes
-    ? new Date(Date.now() + input.durationMinutes * 60 * 1000).toISOString()
+  const endsAt = durationMinutes
+    ? new Date(Date.now() + durationMinutes * 60 * 1000).toISOString()
     : null
 
-  const questions: Question[] = input.questions.map(q => ({
+  const pollQuestions: Question[] = questions.map(q => ({
     id: generateQuestionId(),
     text: q.text,
     options: q.options
   }))
 
   const votes: Record<string, Record<string, string[]>> = {}
-  for (const q of questions) {
+  for (const q of pollQuestions) {
     votes[q.id] = Object.fromEntries(q.options.map(opt => [opt, []]))
   }
 
-  const poll: Poll = {
+  return {
     id,
-    title: input.title,
-    questions,
+    title,
+    questions: pollQuestions,
     createdAt: new Date().toISOString(),
     endsAt,
     isActive: true,
-    isAnonymous: input.isAnonymous,
-    currentQuestionIndex: 0,
+    isAnonymous,
     votes
   }
-  polls[id] = poll
-  writePolls(polls)
-  return poll
 }
 
-export function getPoll(id: string): Poll | null {
-  const polls = readPolls()
-  const poll = polls[id]
-
-  if (poll && poll.endsAt && new Date(poll.endsAt) <= new Date()) {
-    poll.isActive = false
-    writePolls(polls)
-  }
-
-  return poll
-}
-
-export function updatePoll(id: string, updates: { title?: string; questions?: { text: string; options: string[] }[] }): Poll | null {
-  const polls = readPolls()
-  const poll = polls[id]
-
-  if (!poll) return null
-  if (!poll.isActive) return null // Can't edit active polls
-
-  if (updates.title !== undefined) {
-    poll.title = updates.title
-  }
-
-  if (updates.questions !== undefined) {
-    // Check if any votes exist
-    const hasVotes = Object.values(poll.votes).some(v => Object.values(v).some(arr => arr.length > 0))
-    if (hasVotes) return null // Can't change questions if votes exist
-
-    // Rebuild questions and votes
-    poll.questions = updates.questions.map(q => ({
-      id: generateQuestionId(),
-      text: q.text,
-      options: q.options
-    }))
-
-    poll.votes = {}
-    for (const q of poll.questions) {
-      poll.votes[q.id] = Object.fromEntries(q.options.map(opt => [opt, []]))
-    }
-  }
-
-  writePolls(polls)
-  return poll
-}
-
-export function vote(pollId: string, questionId: string, option: string, voterName: string): boolean {
-  const polls = readPolls()
-  const poll = polls[pollId]
-
-  if (!poll || !poll.isActive) return false
-
+// Vote on a question
+export function castVote(poll: Poll, questionId: string, option: string, voterName: string): Poll {
+  if (!poll.isActive) return poll
   if (poll.endsAt && new Date(poll.endsAt) <= new Date()) {
-    poll.isActive = false
-    writePolls(polls)
-    return false
+    return { ...poll, isActive: false }
   }
 
-  if (!poll.votes[questionId]) return false
-  if (!poll.votes[questionId][option]) return false
-  if (poll.votes[questionId][option].includes(voterName)) return false
+  if (!poll.votes[questionId]?.[option]) return poll
+  if (poll.votes[questionId][option].includes(voterName)) return poll
 
-  poll.votes[questionId][option].push(voterName)
-  writePolls(polls)
-  return true
+  const newVotes = { ...poll.votes }
+  newVotes[questionId] = { ...newVotes[questionId] }
+  newVotes[questionId][option] = [...newVotes[questionId][option], voterName]
+
+  return { ...poll, votes: newVotes }
 }
 
-export function getResults(id: string) {
-  const poll = getPoll(id)
-  if (!poll) return null
+// Close poll
+export function closePoll(poll: Poll): Poll {
+  return { ...poll, isActive: false }
+}
 
-  const totalVotesPerQuestion: Record<string, number> = {}
+// Update poll (before votes)
+export function updatePoll(poll: Poll, title: string, questions: { text: string; options: string[] }[]): Poll | null {
+  const hasVotes = Object.values(poll.votes).some(v => Object.values(v).some(arr => arr.length > 0))
+  if (hasVotes) return null
+
+  const newQuestions: Question[] = questions.map(q => ({
+    id: generateQuestionId(),
+    text: q.text,
+    options: q.options
+  }))
+
+  const newVotes: Record<string, Record<string, string[]>> = {}
+  for (const q of newQuestions) {
+    newVotes[q.id] = Object.fromEntries(q.options.map(opt => [opt, []]))
+  }
+
+  return {
+    ...poll,
+    title,
+    questions: newQuestions,
+    votes: newVotes
+  }
+}
+
+// Get results summary
+export function getResults(poll: Poll) {
+  let remainingSeconds: number | null = null
+  if (poll.endsAt && poll.isActive) {
+    remainingSeconds = Math.max(0, Math.floor((new Date(poll.endsAt).getTime() - Date.now()) / 1000))
+  }
+
   const questionResults = poll.questions.map(q => {
-    const totalVotes = Object.values(poll.votes[q.id]).flat().length
-    totalVotesPerQuestion[q.id] = totalVotes
+    const totalVotes = Object.values(poll.votes[q.id] || {}).flat().length
     return {
       questionId: q.id,
       questionText: q.text,
-      results: q.options.map(opt => ({
+      results: (q.options || []).map(opt => ({
         option: opt,
-        count: poll.votes[q.id][opt].length,
-        percentage: totalVotes === 0 ? 0 : Math.round((poll.votes[q.id][opt].length / totalVotes) * 100)
+        count: poll.votes[q.id]?.[opt]?.length || 0,
+        percentage: totalVotes === 0 ? 0 : Math.round(((poll.votes[q.id]?.[opt]?.length || 0) / totalVotes) * 100)
       })),
       totalVotes
     }
   })
 
-  let remainingSeconds = null
-  if (poll.endsAt && poll.isActive) {
-    remainingSeconds = Math.max(0, Math.floor((new Date(poll.endsAt).getTime() - Date.now()) / 1000))
-  }
+  return { poll, questionResults, remainingSeconds }
+}
 
-  return {
-    poll,
-    questionResults,
-    totalVotesPerQuestion,
-    remainingSeconds,
-    currentQuestionIndex: poll.currentQuestionIndex
+// LocalStorage for host's polls
+const HOST_POLLS_KEY = 'pollvote_host_polls'
+
+export function getHostPolls(): Poll[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const stored = localStorage.getItem(HOST_POLLS_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
   }
 }
 
-export function closePoll(id: string): boolean {
-  const polls = readPolls()
-  if (!polls[id]) return false
-  polls[id].isActive = false
-  writePolls(polls)
-  return true
+export function saveHostPoll(poll: Poll): void {
+  if (typeof window === 'undefined') return
+  const polls = getHostPolls().filter(p => p.id !== poll.id)
+  polls.unshift(poll) // Most recent first
+  localStorage.setItem(HOST_POLLS_KEY, JSON.stringify(polls.slice(0, 50))) // Keep last 50
+}
+
+export function deleteHostPoll(pollId: string): void {
+  if (typeof window === 'undefined') return
+  const polls = getHostPolls().filter(p => p.id !== pollId)
+  localStorage.setItem(HOST_POLLS_KEY, JSON.stringify(polls))
+}
+
+// Check if poll is expired and close it
+export function checkPollExpiry(poll: Poll): Poll {
+  if (poll.isActive && poll.endsAt && new Date(poll.endsAt) <= new Date()) {
+    return { ...poll, isActive: false }
+  }
+  return poll
 }

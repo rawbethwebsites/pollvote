@@ -19,8 +19,8 @@ export default function Home() {
         <div className="text-center mb-12">
           {/* Logo */}
           <div className="flex justify-center mb-6">
-            <img src="/logos/logo.png" alt="PollVote Logo" className="h-20 dark:hidden" />
-            <img src="/logos/logo-white.png" alt="PollVote Logo" className="h-20 hidden dark:block" />
+            <img src="/logos/logo-white.svg" alt="PollVote Logo" className="h-20 dark:hidden" />
+            <img src="/logos/logo.png" alt="PollVote Logo" className="h-20 hidden dark:block" />
           </div>
           <h1 className="text-5xl font-bold mb-4" style={{ color: 'var(--text)' }}>PollVote</h1>
           <p className="text-xl" style={{ color: 'var(--text-muted)' }}>Real-time voting, no account needed</p>

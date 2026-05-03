@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Question {
@@ -32,6 +32,11 @@ export default function HostPage({ params }: { params: { id: string } }) {
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null)
   const [copied, setCopied] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editQuestions, setEditQuestions] = useState<{ text: string; options: string[] }[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+  const [editError, setEditError] = useState('')
 
   useEffect(() => {
     const fetchResults = () => {
@@ -55,6 +60,91 @@ export default function HostPage({ params }: { params: { id: string } }) {
     const interval = setInterval(fetchResults, 1000)
     return () => clearInterval(interval)
   }, [params.id])
+
+  const startEditing = () => {
+    if (!poll) return
+    setEditTitle(poll.title)
+    setEditQuestions(poll.questions.map(q => ({ text: q.text, options: [...q.options] })))
+    setIsEditing(true)
+    setEditError('')
+  }
+
+  const cancelEditing = () => {
+    setIsEditing(false)
+    setEditError('')
+  }
+
+  const updateEditQuestion = (index: number, text: string) => {
+    const updated = [...editQuestions]
+    updated[index].text = text
+    setEditQuestions(updated)
+  }
+
+  const updateEditOption = (qIndex: number, oIndex: number, value: string) => {
+    const updated = [...editQuestions]
+    updated[qIndex].options[oIndex] = value
+    setEditQuestions(updated)
+  }
+
+  const addEditOption = (qIndex: number) => {
+    const updated = [...editQuestions]
+    if (updated[qIndex].options.length < 10) {
+      updated[qIndex].options.push('')
+      setEditQuestions(updated)
+    }
+  }
+
+  const removeEditOption = (qIndex: number, oIndex: number) => {
+    const updated = [...editQuestions]
+    if (updated[qIndex].options.length > 2) {
+      updated[qIndex].options = updated[qIndex].options.filter((_, i) => i !== oIndex)
+      setEditQuestions(updated)
+    }
+  }
+
+  const saveEdits = async () => {
+    if (!editTitle.trim()) return
+
+    const validQuestions = editQuestions.filter(q =>
+      q.text.trim() && q.options.filter(o => o.trim()).length >= 2
+    )
+
+    if (validQuestions.length === 0) {
+      setEditError('At least one question with 2+ options required')
+      return
+    }
+
+    setIsSaving(true)
+    setEditError('')
+
+    try {
+      const res = await fetch(`/api/polls/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editTitle.trim(),
+          questions: validQuestions.map(q => ({
+            text: q.text.trim(),
+            options: q.options.filter(o => o.trim())
+          }))
+        })
+      })
+
+      if (res.ok) {
+        const updated = await res.json()
+        setPoll(updated)
+        setIsEditing(false)
+        setEditQuestions([])
+      } else {
+        const data = await res.json()
+        setEditError(data.error || 'Failed to update poll')
+      }
+    } catch {
+      setEditError('Failed to update poll')
+    }
+
+    setIsSaving(false)
+  }
 
   const handleClosePoll = async () => {
     await fetch(`/api/polls/${params.id}/close`, { method: 'POST' })
@@ -92,6 +182,90 @@ export default function HostPage({ params }: { params: { id: string } }) {
           <button onClick={() => router.push('/')} className="text-primary hover:underline">
             Go back home
           </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Edit Mode
+  if (isEditing) {
+    return (
+      <div className="min-h-screen bg-bg py-12 px-4">
+        <div className="max-w-2xl mx-auto">
+          <button
+            onClick={cancelEditing}
+            className="mb-8 text-text-muted hover:text-text flex items-center gap-2"
+          >
+            <span>←</span> Cancel
+          </button>
+
+          <h1 className="text-3xl font-bold text-text mb-8">Edit Poll</h1>
+
+          <div className="space-y-6">
+            <div className="bg-surface rounded-2xl shadow-lg p-8">
+              <label className="block text-sm font-medium text-text mb-2">Poll Title</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {editQuestions.map((question, qIndex) => (
+              <div key={qIndex} className="bg-surface rounded-2xl shadow-lg p-6">
+                <span className="text-sm font-medium text-text-muted">Question {qIndex + 1}</span>
+                <input
+                  type="text"
+                  value={question.text}
+                  onChange={(e) => updateEditQuestion(qIndex, e.target.value)}
+                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary mt-2 mb-4"
+                />
+
+                <div className="space-y-2">
+                  {question.options.map((option, oIndex) => (
+                    <div key={oIndex} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => updateEditOption(qIndex, oIndex, e.target.value)}
+                        className="flex-1 px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      {question.options.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => removeEditOption(qIndex, oIndex)}
+                          className="px-3 text-text-muted hover:text-error"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {question.options.length < 10 && (
+                  <button
+                    type="button"
+                    onClick={() => addEditOption(qIndex)}
+                    className="mt-2 text-sm text-primary hover:text-primary-hover"
+                  >
+                    + Add option
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {editError && <p className="text-error text-center">{editError}</p>}
+
+            <button
+              onClick={saveEdits}
+              disabled={isSaving}
+              className="w-full py-4 px-6 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -154,6 +328,15 @@ export default function HostPage({ params }: { params: { id: string } }) {
                 </button>
               </div>
             </div>
+
+            {poll.isActive && (
+              <button
+                onClick={startEditing}
+                className="w-full py-2 border border-border hover:bg-bg text-text font-medium rounded-xl transition-colors"
+              >
+                Edit Poll
+              </button>
+            )}
           </div>
         </div>
 
@@ -161,7 +344,6 @@ export default function HostPage({ params }: { params: { id: string } }) {
         <div className="space-y-6">
           {questionResults.map((qr, qIndex) => {
             const maxCount = Math.max(...qr.results.map(r => r.count), 1)
-            const totalVotesAll = questionResults.reduce((sum, q) => sum + q.totalVotes, 0)
 
             return (
               <div key={qr.questionId} className="bg-surface rounded-2xl shadow-lg p-8">

@@ -16,7 +16,7 @@ export interface Poll {
   isActive: boolean
   isAnonymous: boolean
   currentQuestionIndex: number
-  votes: Record<string, Record<string, string[]>> // questionId -> option -> voter names
+  votes: Record<string, Record<string, string[]>>
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data')
@@ -100,6 +100,39 @@ export function getPoll(id: string): Poll | null {
     writePolls(polls)
   }
 
+  return poll
+}
+
+export function updatePoll(id: string, updates: { title?: string; questions?: { text: string; options: string[] }[] }): Poll | null {
+  const polls = readPolls()
+  const poll = polls[id]
+
+  if (!poll) return null
+  if (!poll.isActive) return null // Can't edit active polls
+
+  if (updates.title !== undefined) {
+    poll.title = updates.title
+  }
+
+  if (updates.questions !== undefined) {
+    // Check if any votes exist
+    const hasVotes = Object.values(poll.votes).some(v => Object.values(v).some(arr => arr.length > 0))
+    if (hasVotes) return null // Can't change questions if votes exist
+
+    // Rebuild questions and votes
+    poll.questions = updates.questions.map(q => ({
+      id: generateQuestionId(),
+      text: q.text,
+      options: q.options
+    }))
+
+    poll.votes = {}
+    for (const q of poll.questions) {
+      poll.votes[q.id] = Object.fromEntries(q.options.map(opt => [opt, []]))
+    }
+  }
+
+  writePolls(polls)
   return poll
 }
 

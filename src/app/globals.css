@@ -4,8 +4,52 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+:root {
+  --bg: #f8f9fb;
+  --surface: #ffffff;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --success: #10b981;
+  --error: #ef4444;
+}
+
+.dark {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --primary: #6366f1;
+  --primary-hover: #818cf8;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: #334155;
+}
+
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background-color: #f8f9fb;
-  color: #1e293b;
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Logo styling for dark mode */
+.dark .logo-colored {
+  filter: brightness(0) invert(1);
+}
+
+.dark .logo-light {
+  display: block;
+}
+
+.logo-light {
+  display: none;
+}
+
+.dark .logo-light {
+  display: block;
+}
+
+.dark .logo-colored {
+  display: none;
 }

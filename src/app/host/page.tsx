@@ -161,8 +161,8 @@ function HostContent() {
 
   if (!poll) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
-        <div className="text-text-muted">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg)' }}>
+        <div style={{ color: 'var(--text-muted)' }}>Loading...</div>
       </div>
     )
   }
@@ -175,33 +175,38 @@ function HostContent() {
   // Edit Mode
   if (isEditing) {
     return (
-      <div className="min-h-screen bg-bg py-12 px-4">
+      <div className="min-h-screen py-12 px-4" style={{ backgroundColor: 'var(--bg)' }}>
         <div className="max-w-2xl mx-auto">
-          <button onClick={cancelEditing} className="mb-8 text-text-muted hover:text-text flex items-center gap-2">
+          <button onClick={cancelEditing} className="mb-8 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+          >
             <span>←</span> Cancel
           </button>
 
-          <h1 className="text-3xl font-bold text-text mb-8">Edit Poll</h1>
+          <h1 className="text-3xl font-bold mb-8" style={{ color: 'var(--text)' }}>Edit Poll</h1>
 
           <div className="space-y-6">
-            <div className="bg-surface rounded-2xl shadow-lg p-8">
-              <label className="block text-sm font-medium text-text mb-2">Poll Title</label>
+            <div className="rounded-2xl shadow-lg p-8" style={{ backgroundColor: 'var(--surface)' }}>
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>Poll Title</label>
               <input
                 type="text"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2"
+                style={{ borderColor: 'var(--border)', borderWidth: '1px', borderStyle: 'solid', backgroundColor: 'var(--bg)', color: 'var(--text)' }}
               />
             </div>
 
             {editQuestions.map((question, qIndex) => (
-              <div key={qIndex} className="bg-surface rounded-2xl shadow-lg p-6">
-                <span className="text-sm font-medium text-text-muted">Question {qIndex + 1}</span>
+              <div key={qIndex} className="rounded-2xl shadow-lg p-6" style={{ backgroundColor: 'var(--surface)' }}>
+                <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Question {qIndex + 1}</span>
                 <input
                   type="text"
                   value={question.text}
                   onChange={(e) => updateEditQuestion(qIndex, e.target.value)}
-                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary mt-2 mb-4"
+                  className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 mt-2 mb-4"
+                  style={{ borderColor: 'var(--border)', borderWidth: '1px', borderStyle: 'solid', backgroundColor: 'var(--bg)', color: 'var(--text)' }}
                 />
                 <div className="space-y-2">
                   {question.options.map((option, oIndex) => (
@@ -210,25 +215,35 @@ function HostContent() {
                         type="text"
                         value={option}
                         onChange={(e) => updateEditOption(qIndex, oIndex, e.target.value)}
-                        className="flex-1 px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="flex-1 px-4 py-2 rounded-xl focus:outline-none focus:ring-2"
+                        style={{ borderColor: 'var(--border)', borderWidth: '1px', borderStyle: 'solid', backgroundColor: 'var(--bg)', color: 'var(--text)' }}
                       />
                       {question.options.length > 2 && (
-                        <button type="button" onClick={() => removeEditOption(qIndex, oIndex)} className="px-3 text-text-muted hover:text-error">×</button>
+                        <button type="button" onClick={() => removeEditOption(qIndex, oIndex)} style={{ color: 'var(--text-muted)' }}
+                          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--error)'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                        >×</button>
                       )}
                     </div>
                   ))}
                 </div>
                 {question.options.length < 10 && (
-                  <button type="button" onClick={() => addEditOption(qIndex)} className="mt-2 text-sm text-primary hover:text-primary-hover">+ Add option</button>
+                  <button type="button" onClick={() => addEditOption(qIndex)} className="mt-2 text-sm" style={{ color: 'var(--primary)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-hover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                  >+ Add option</button>
                 )}
               </div>
             ))}
 
-            {editError && <p className="text-error text-center">{editError}</p>}
+            {editError && <p style={{ color: 'var(--error)', textAlign: 'center' }}>{editError}</p>}
 
             <button
               onClick={saveEdits}
-              className="w-full py-4 px-6 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors"
+              className="w-full py-4 px-6 font-semibold rounded-xl transition-colors"
+              style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
             >
               Save Changes
             </button>
@@ -239,46 +254,55 @@ function HostContent() {
   }
 
   return (
-    <div className="min-h-screen bg-bg py-12 px-4">
+    <div className="min-h-screen py-12 px-4" style={{ backgroundColor: 'var(--bg)' }}>
       <div className="max-w-2xl mx-auto">
-        <button onClick={() => router.push('/')} className="mb-8 text-text-muted hover:text-text flex items-center gap-2">
+        <button onClick={() => router.push('/')} className="mb-8 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
           <span>←</span> Back to Home
         </button>
 
         {/* Header */}
-        <div className="bg-surface rounded-2xl shadow-lg p-8 mb-6">
+        <div className="rounded-2xl shadow-lg p-8 mb-6" style={{ backgroundColor: 'var(--surface)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               {poll.isActive ? (
-                <div className="px-3 py-1 bg-success/10 text-success text-sm font-medium rounded-full">Live</div>
+                <div className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: 'var(--success)', color: 'white' }}>Live</div>
               ) : (
-                <div className="px-3 py-1 bg-text-muted/10 text-text-muted text-sm font-medium rounded-full">Closed</div>
+                <div className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: 'var(--text-muted)', color: 'white' }}>Closed</div>
               )}
-              <h1 className="text-2xl font-bold text-text">{poll.title}</h1>
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{poll.title}</h1>
             </div>
             {remainingSeconds !== null && remainingSeconds > 0 && poll.isActive && (
-              <div className="text-2xl font-mono font-bold text-primary bg-primary/10 px-4 py-2 rounded-xl">
+              <div className="font-mono font-bold px-4 py-2 rounded-xl" style={{ backgroundColor: 'var(--primary)', color: 'white' }}>
                 {formatTime(remainingSeconds)}
               </div>
             )}
           </div>
 
-          <div className="bg-bg rounded-xl p-6 text-center mb-6">
-            <p className="text-sm text-text-muted mb-2">Poll ID</p>
-            <p className="text-4xl font-mono font-bold text-primary tracking-wider">{poll.id}</p>
+          <div className="rounded-xl p-6 text-center mb-6" style={{ backgroundColor: 'var(--bg)' }}>
+            <p className="text-sm mb-2" style={{ color: 'var(--text-muted)' }}>Poll ID</p>
+            <p className="text-4xl font-mono font-bold tracking-wider" style={{ color: 'var(--primary)' }}>{poll.id}</p>
           </div>
 
           <div className="flex gap-3">
             <button
               onClick={() => setShowShareModal(true)}
-              className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors"
+              className="flex-1 py-3 font-semibold rounded-xl transition-colors"
+              style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
             >
               Share Poll
             </button>
             {poll.isActive && (
               <button
                 onClick={startEditing}
-                className="px-6 py-3 border border-border hover:bg-bg text-text font-medium rounded-xl transition-colors"
+                className="px-6 py-3 font-medium rounded-xl transition-colors"
+                style={{ borderColor: 'var(--border)', borderWidth: '1px', borderStyle: 'solid', color: 'var(--text)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--surface)'}
               >
                 Edit
               </button>
@@ -288,21 +312,27 @@ function HostContent() {
 
         {/* Share Modal */}
         {showShareModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-surface rounded-2xl shadow-lg p-8 max-w-md w-full">
+          <div className="fixed inset-0 flex items-center justify-center p-4 z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="rounded-2xl shadow-lg p-8 max-w-md w-full" style={{ backgroundColor: 'var(--surface)' }}>
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-text">Share Your Poll</h2>
-                <button onClick={() => setShowShareModal(false)} className="text-text-muted hover:text-text">×</button>
+                <h2 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Share Your Poll</h2>
+                <button onClick={() => setShowShareModal(false)} style={{ color: 'var(--text-muted)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                >×</button>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-text mb-2">Voting link</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>Voting link</label>
                   <div className="flex gap-2">
-                    <input type="text" value={voteLink} readOnly className="flex-1 px-4 py-3 border border-border rounded-xl bg-bg text-sm font-mono" />
+                    <input type="text" value={voteLink} readOnly className="flex-1 px-4 py-3 rounded-xl text-sm font-mono" style={{ borderColor: 'var(--border)', borderWidth: '1px', borderStyle: 'solid', backgroundColor: 'var(--bg)', color: 'var(--text)' }} />
                     <button
                       onClick={() => copyToClipboard(voteLink, 'vote')}
-                      className="px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl"
+                      className="px-6 py-3 font-semibold rounded-xl"
+                      style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
                     >
                       {copied === 'vote' ? 'Copied!' : 'Copy'}
                     </button>
@@ -310,12 +340,15 @@ function HostContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-text mb-2">Results link</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>Results link</label>
                   <div className="flex gap-2">
-                    <input type="text" value={resultsLink} readOnly className="flex-1 px-4 py-3 border border-border rounded-xl bg-bg text-sm font-mono" />
+                    <input type="text" value={resultsLink} readOnly className="flex-1 px-4 py-3 rounded-xl text-sm font-mono" style={{ borderColor: 'var(--border)', borderWidth: '1px', borderStyle: 'solid', backgroundColor: 'var(--bg)', color: 'var(--text)' }} />
                     <button
                       onClick={() => copyToClipboard(resultsLink, 'results')}
-                      className="px-6 py-3 border border-border hover:bg-bg text-text font-medium rounded-xl"
+                      className="px-6 py-3 font-medium rounded-xl"
+                      style={{ borderColor: 'var(--border)', borderWidth: '1px', borderStyle: 'solid', color: 'var(--text)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--surface)'}
                     >
                       {copied === 'results' ? 'Copied!' : 'Copy'}
                     </button>
@@ -331,23 +364,23 @@ function HostContent() {
           {questionResults.map((qr, qIndex) => {
             const maxCount = Math.max(...qr.results.map(r => r.count), 1)
             return (
-              <div key={qr.questionId} className="bg-surface rounded-2xl shadow-lg p-8">
+              <div key={qr.questionId} className="rounded-2xl shadow-lg p-8" style={{ backgroundColor: 'var(--surface)' }}>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-text">Q{qIndex + 1}: {qr.questionText}</h2>
+                  <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>Q{qIndex + 1}: {qr.questionText}</h2>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{qr.totalVotes}</div>
-                    <div className="text-xs text-text-muted">{qr.totalVotes === 1 ? 'vote' : 'votes'}</div>
+                    <div className="text-2xl font-bold" style={{ color: 'var(--primary)' }}>{qr.totalVotes}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{qr.totalVotes === 1 ? 'vote' : 'votes'}</div>
                   </div>
                 </div>
                 <div className="space-y-3">
                   {qr.results.map((result) => (
                     <div key={result.option}>
                       <div className="flex justify-between mb-1">
-                        <span className="text-text">{result.option}</span>
-                        <span className="text-text-muted text-sm">{result.count} ({result.percentage}%)</span>
+                        <span style={{ color: 'var(--text)' }}>{result.option}</span>
+                        <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{result.count} ({result.percentage}%)</span>
                       </div>
-                      <div className="h-6 bg-bg rounded-lg overflow-hidden">
-                        <div className="h-full bg-primary rounded-lg" style={{ width: `${(result.count / maxCount) * 100}%` }}></div>
+                      <div className="h-6 rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--bg)' }}>
+                        <div className="h-full rounded-lg" style={{ backgroundColor: 'var(--primary)', width: `${(result.count / maxCount) * 100}%` }}></div>
                       </div>
                     </div>
                   ))}
@@ -358,19 +391,23 @@ function HostContent() {
         </div>
 
         {/* Footer */}
-        <div className="mt-6 bg-surface rounded-2xl shadow-lg p-8">
+        <div className="mt-6 rounded-2xl shadow-lg p-8" style={{ backgroundColor: 'var(--surface)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-sm">Total votes</p>
-              <p className="text-3xl font-bold text-primary">{totalVotes}</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Total votes</p>
+              <p className="text-3xl font-bold" style={{ color: 'var(--primary)' }}>{totalVotes}</p>
             </div>
             {poll.isActive && (
-              <button onClick={handleClose} className="px-6 py-3 border border-error text-error hover:bg-error/5 font-medium rounded-xl">
+              <button onClick={handleClose} className="px-6 py-3 font-medium rounded-xl"
+                style={{ borderColor: 'var(--error)', borderWidth: '1px', borderStyle: 'solid', color: 'var(--error)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--error)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
                 Close Poll
               </button>
             )}
           </div>
-          {!poll.isActive && <p className="text-center text-text-muted mt-4">This poll is closed</p>}
+          {!poll.isActive && <p className="text-center mt-4" style={{ color: 'var(--text-muted)' }}>This poll is closed</p>}
         </div>
       </div>
     </div>

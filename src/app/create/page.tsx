@@ -82,41 +82,48 @@ export default function CreatePoll() {
   }
 
   return (
-    <div className="min-h-screen bg-bg py-12 px-4">
+    <div className="min-h-screen py-12 px-4" style={{ backgroundColor: 'var(--bg)' }}>
       <div className="max-w-2xl mx-auto">
         <button
           onClick={() => router.push('/')}
-          className="mb-8 text-text-muted hover:text-text flex items-center gap-2"
+          className="mb-8 flex items-center gap-2"
+          style={{ color: 'var(--text-muted)' }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
         >
           <span>←</span> Back
         </button>
 
-        <h1 className="text-3xl font-bold text-text mb-8">Create a Poll</h1>
+        <h1 className="text-3xl font-bold mb-8" style={{ color: 'var(--text)' }}>Create a Poll</h1>
 
         <div className="space-y-6">
           {/* Title */}
-          <div className="bg-surface rounded-2xl shadow-lg p-8">
-            <label className="block text-sm font-medium text-text mb-2">Poll Title</label>
+          <div className="rounded-2xl shadow-lg p-8" style={{ backgroundColor: 'var(--surface)' }}>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>Poll Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What is this poll about?"
-              className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2"
+              style={{ borderColor: 'var(--border)', borderWidth: '1px', borderStyle: 'solid', backgroundColor: 'var(--bg)', color: 'var(--text)' }}
             />
           </div>
 
           {/* Questions */}
           <div className="space-y-4">
             {questions.map((question, qIndex) => (
-              <div key={qIndex} className="bg-surface rounded-2xl shadow-lg p-6">
+              <div key={qIndex} className="rounded-2xl shadow-lg p-6" style={{ backgroundColor: 'var(--surface)' }}>
                 <div className="flex justify-between items-start mb-4">
-                  <span className="text-sm font-medium text-text-muted">Question {qIndex + 1}</span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Question {qIndex + 1}</span>
                   {questions.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeQuestion(qIndex)}
-                      className="text-text-muted hover:text-error text-sm"
+                      className="text-sm"
+                      style={{ color: 'var(--text-muted)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--error)'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                     >
                       Remove
                     </button>
@@ -128,7 +135,8 @@ export default function CreatePoll() {
                   value={question.text}
                   onChange={(e) => updateQuestionText(qIndex, e.target.value)}
                   placeholder="Enter your question"
-                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary mb-4"
+                  className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 mb-4"
+                  style={{ borderColor: 'var(--border)', borderWidth: '1px', borderStyle: 'solid', backgroundColor: 'var(--bg)', color: 'var(--text)' }}
                 />
 
                 <div className="space-y-2">
@@ -139,13 +147,16 @@ export default function CreatePoll() {
                         value={option}
                         onChange={(e) => updateOption(qIndex, oIndex, e.target.value)}
                         placeholder={`Option ${oIndex + 1}`}
-                        className="flex-1 px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="flex-1 px-4 py-2 rounded-xl focus:outline-none focus:ring-2"
+                        style={{ borderColor: 'var(--border)', borderWidth: '1px', borderStyle: 'solid', backgroundColor: 'var(--bg)', color: 'var(--text)' }}
                       />
                       {question.options.length > 2 && (
                         <button
                           type="button"
                           onClick={() => removeOption(qIndex, oIndex)}
-                          className="px-3 text-text-muted hover:text-error"
+                          style={{ color: 'var(--text-muted)' }}
+                          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--error)'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                         >
                           ×
                         </button>
@@ -158,7 +169,10 @@ export default function CreatePoll() {
                   <button
                     type="button"
                     onClick={() => addOption(qIndex)}
-                    className="mt-2 text-sm text-primary hover:text-primary-hover"
+                    className="mt-2 text-sm"
+                    style={{ color: 'var(--primary)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-hover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--primary)'}
                   >
                     + Add option
                   </button>
@@ -170,26 +184,31 @@ export default function CreatePoll() {
           <button
             type="button"
             onClick={addQuestion}
-            className="w-full py-3 border-2 border-dashed border-border rounded-xl text-text-muted hover:border-primary hover:text-primary transition-colors"
+            className="w-full py-3 rounded-xl transition-colors"
+            style={{ borderColor: 'var(--border)', borderWidth: '2px', borderStyle: 'dashed', color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
           >
             + Add another question
           </button>
 
           {/* Settings */}
-          <div className="bg-surface rounded-2xl shadow-lg p-8 space-y-6">
+          <div className="rounded-2xl shadow-lg p-8 space-y-6" style={{ backgroundColor: 'var(--surface)' }}>
             <div>
-              <label className="block text-sm font-medium text-text mb-3">Poll Duration</label>
+              <label className="block text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>Poll Duration</label>
               <div className="flex flex-wrap gap-2">
                 {[1, 2, 5, 10, 15].map(mins => (
                   <button
                     key={mins}
                     type="button"
                     onClick={() => setDuration(mins)}
-                    className={`px-4 py-2 rounded-xl border-2 transition-all ${
-                      duration === mins
-                        ? 'border-primary bg-primary/5 text-primary font-medium'
-                        : 'border-border hover:border-primary/50 text-text-muted'
-                    }`}
+                    className="px-4 py-2 rounded-xl border-2 transition-all"
+                    style={duration === mins
+                      ? { borderColor: 'var(--primary)', backgroundColor: 'var(--primary)', color: 'white' }
+                      : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
+                    }
+                    onMouseEnter={(e) => { if (duration !== mins) e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                    onMouseLeave={(e) => { if (duration !== mins) e.currentTarget.style.borderColor = 'var(--border)'; }}
                   >
                     {mins} min
                   </button>
@@ -197,11 +216,13 @@ export default function CreatePoll() {
                 <button
                   type="button"
                   onClick={() => setDuration(null)}
-                  className={`px-4 py-2 rounded-xl border-2 transition-all ${
-                    duration === null
-                      ? 'border-primary bg-primary/5 text-primary font-medium'
-                      : 'border-border hover:border-primary/50 text-text-muted'
-                  }`}
+                  className="px-4 py-2 rounded-xl border-2 transition-all"
+                  style={duration === null
+                    ? { borderColor: 'var(--primary)', backgroundColor: 'var(--primary)', color: 'white' }
+                    : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
+                  }
+                  onMouseEnter={(e) => { if (duration !== null) e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                  onMouseLeave={(e) => { if (duration !== null) e.currentTarget.style.borderColor = 'var(--border)'; }}
                 >
                   No limit
                 </button>
@@ -214,9 +235,10 @@ export default function CreatePoll() {
                 id="anonymous"
                 checked={isAnonymous}
                 onChange={(e) => setIsAnonymous(e.target.checked)}
-                className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+                className="w-5 h-5 rounded"
+                style={{ accentColor: 'var(--primary)' }}
               />
-              <label htmlFor="anonymous" className="text-sm text-text">
+              <label htmlFor="anonymous" className="text-sm" style={{ color: 'var(--text)' }}>
                 Enable anonymous voting (voter names hidden)
               </label>
             </div>
@@ -225,7 +247,10 @@ export default function CreatePoll() {
           <button
             onClick={handleSubmit}
             disabled={isLoading || !title.trim()}
-            className="w-full py-4 px-6 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+            className="w-full py-4 px-6 font-semibold rounded-xl transition-colors"
+            style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+            onMouseEnter={(e) => { if (!isLoading && title.trim()) e.currentTarget.style.backgroundColor = 'var(--primary-hover)'; }}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
           >
             {isLoading ? 'Creating...' : 'Create Poll'}
           </button>

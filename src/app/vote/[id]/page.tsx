@@ -111,7 +111,9 @@ export default function VotePage({ params }: { params: { id: string } }) {
                   <span className="text-sm text-text-muted">Voting is open</span>
                 </div>
                 <h1 className="text-2xl font-bold text-text mb-2">{poll.title}</h1>
-                <p className="text-text-muted">Voting as <span className="font-medium">{voterName}</span></p>
+                {voterName && (
+                  <p className="text-text-muted">Voting as <span className="font-medium">{voterName}</span></p>
+                )}
               </div>
 
               <div className="space-y-3 mb-8">
@@ -130,13 +132,19 @@ export default function VotePage({ params }: { params: { id: string } }) {
                 ))}
               </div>
 
-              <button
-                onClick={handleVote}
-                disabled={!selectedOption || isSubmitting}
-                className="w-full py-4 px-6 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Vote'}
-              </button>
+              {voterName ? (
+                <button
+                  onClick={handleVote}
+                  disabled={!selectedOption || isSubmitting}
+                  className="w-full py-4 px-6 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Vote'}
+                </button>
+              ) : (
+                <p className="text-center text-text-muted py-4">
+                  Go back and enter your name to vote
+                </p>
+              )}
 
               {error && <p className="mt-4 text-center text-error">{error}</p>}
             </>

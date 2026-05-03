@@ -44,7 +44,7 @@ export default function CreatePoll() {
         })
       })
       const poll = await res.json()
-      router.push(`/vote/${poll.id}`)
+      router.push(`/host/${poll.id}`)
     } catch (error) {
       console.error('Failed to create poll:', error)
       setIsLoading(false)

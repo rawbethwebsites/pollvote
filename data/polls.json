@@ -1,0 +1,55 @@
+{
+  "FRB3GF": {
+    "id": "FRB3GF",
+    "title": "What movie should we watch?",
+    "options": [
+      "Inception",
+      "The Matrix",
+      "Interstellar",
+      "The Shawshank Redemption"
+    ],
+    "createdAt": "2026-05-03T18:22:22.587Z",
+    "isActive": false,
+    "isAnonymous": false,
+    "votes": {
+      "Inception": [
+        "Alice"
+      ],
+      "The Matrix": [],
+      "Interstellar": [],
+      "The Shawshank Redemption": []
+    }
+  },
+  "2XDI0P": {
+    "id": "2XDI0P",
+    "title": "what game should we play?",
+    "options": [
+      "Badminton",
+      "Table tennis"
+    ],
+    "createdAt": "2026-05-03T18:24:47.577Z",
+    "isActive": true,
+    "isAnonymous": true,
+    "votes": {
+      "Badminton": [],
+      "Table tennis": []
+    }
+  },
+  "B0D904": {
+    "id": "B0D904",
+    "title": "What movie should we watch?",
+    "options": [
+      "Merlin",
+      "Maven"
+    ],
+    "createdAt": "2026-05-03T18:28:38.605Z",
+    "isActive": true,
+    "isAnonymous": true,
+    "votes": {
+      "Merlin": [],
+      "Maven": [
+        "Rob"
+      ]
+    }
+  }
+}
